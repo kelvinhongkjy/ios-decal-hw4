@@ -119,6 +119,14 @@ class PlayerViewController: UIViewController {
         artistLabel.text = track.artist
     }
 
+    func updateCurrentItem() {
+        let path = Bundle.main.path(forResource: "Info", ofType: "plist")
+        let clientID = NSDictionary(contentsOfFile: path!)?.value(forKey: "client_id") as! String
+        let track = tracks[currentIndex]
+        let url = URL(string: "https://api.soundcloud.com/tracks/\(track.id as Int)/stream?client_id=\(clientID)")!
+        player.replaceCurrentItem(with: AVPlayerItem.init(url: url))
+    }
+    
     /*
      *  This Method should play or pause the song, depending on the song's state
      *  It should also toggle between the play and pause images by toggling
@@ -130,12 +138,23 @@ class PlayerViewController: UIViewController {
      */
     
     func playOrPauseTrack(_ sender: UIButton) {
-        let path = Bundle.main.path(forResource: "Info", ofType: "plist")
-        let clientID = NSDictionary(contentsOfFile: path!)?.value(forKey: "client_id") as! String
-        let track = tracks[currentIndex]
-        let url = URL(string: "https://api.soundcloud.com/tracks/\(track.id as Int)/stream?client_id=\(clientID)")!
-        // FILL ME IN
-
+        
+        if player.currentItem != nil {
+            if paused {
+                player.play()
+                sender.isSelected = true
+            } else {
+                player.pause()
+                sender.isSelected = false
+            }
+            paused = !paused
+        } else {
+            // first time
+            updateCurrentItem()
+            player.play()
+            paused = false
+            sender.isSelected = true
+        }
     }
 
     /*
@@ -145,7 +164,11 @@ class PlayerViewController: UIViewController {
      * Remember to update the currentIndex
      */
     func nextTrackTapped(_ sender: UIButton) {
-        // FILL ME IN
+        if currentIndex+1 < tracks.count {
+            currentIndex = currentIndex + 1
+            updateCurrentItem()
+            loadTrackElements()
+        }
     }
 
     /*
@@ -159,7 +182,15 @@ class PlayerViewController: UIViewController {
      */
 
     func previousTrackTapped(_ sender: UIButton) {
-        // FILL ME IN
+        let currentTime = player.currentTime()
+        
+        if CMTimeGetSeconds(currentTime) < 3 && self.currentIndex > 0 {
+            currentIndex = currentIndex - 1
+            updateCurrentItem()
+            loadTrackElements()
+        } else if CMTimeGetSeconds(currentTime) > 3 {
+            player.seek(to: kCMTimeZero)
+        }
     }
 
 
